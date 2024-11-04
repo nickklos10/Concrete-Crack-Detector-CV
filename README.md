@@ -33,7 +33,7 @@ This project provides a web-based interface for detecting cracks in concrete sur
    ```
    git clone https://github.com/yourusername/concrete-crack-detector.git
    cd concrete-crack-detector
-
+   ```
 
 2. **Install Dependencies:** Ensure you are using a Python virtual environment, then install the required packages:
    ```
@@ -90,6 +90,5 @@ Batch Size: `32`
 ```
 torch.save(model.state_dict(), 'resnet18_trained.pth')
 ```
-Note: Due to the model file size, resnet18_trained.pth is not included in this repository. You can generate this file by running the training script on your dataset.
 
 
