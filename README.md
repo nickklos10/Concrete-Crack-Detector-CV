@@ -91,4 +91,8 @@ Batch Size: `32`
 torch.save(model.state_dict(), 'resnet18_trained.pth')
 ```
 
+## Frontend Look of the Web-App
+
+![Screenshot 2024-11-04 at 5 35 23 PM](https://github.com/user-attachments/assets/765ee6e2-79ed-4095-9bd0-c2ccc9cf95a0)
+
 
