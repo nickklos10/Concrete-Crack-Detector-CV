@@ -31,8 +31,8 @@ This project provides a web-based interface for detecting cracks in concrete sur
 
 1. **Clone the Repository:**
    ```
-   git clone https://github.com/yourusername/concrete-crack-detector.git
-   cd concrete-crack-detector
+   git clone https://github.com/nickklos10/Concrete-Crack-Detector-CV.git
+   cd Concrete-Crack-Detector-CV
    ```
 
 2. **Install Dependencies:** Ensure you are using a Python virtual environment, then install the required packages:
