@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Concrete Crack Detector</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.24.0/axios.min.js"></script>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      h1 {
+        text-align: center;
+        color: #333;
+        margin-bottom: 30px;
+      }
+
+      .upload-container {
+        border: 3px dashed #ccc;
+        border-radius: 8px;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.3s ease;
+        margin-bottom: 20px;
+      }
+
+      .upload-container:hover {
+        border-color: #666;
+      }
+
+      .upload-container.dragover {
+        border-color: #2196f3;
+        background: #e3f2fd;
+      }
+
+      .upload-container p {
+        margin: 0;
+        font-size: 1.1em;
+        color: #666;
+      }
+
+      #preview-container {
+        display: none;
+        margin: 20px 0;
+        text-align: center;
+      }
+
+      #preview-image {
+        max-width: 100%;
+        max-height: 400px;
+        border-radius: 8px;
+      }
+
+      .result-container {
+        display: none;
+        margin-top: 20px;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 4px;
+        background: #f0f0f0;
+        margin-top: 20px;
+        border-radius: 2px;
+        overflow: hidden;
+        display: none;
+      }
+
+      .progress {
+        width: 0%;
+        height: 100%;
+        background: #2196f3;
+        transition: width 0.3s ease;
+      }
+
+      .crack {
+        background: #ffebee;
+        border: 1px solid #ffcdd2;
+        color: #c62828;
+      }
+
+      .no-crack {
+        background: #e8f5e9;
+        border: 1px solid #c8e6c9;
+        color: #2e7d32;
+      }
+
+      .confidence-bar {
+        width: 200px;
+        height: 20px;
+        background: #f0f0f0;
+        margin: 10px auto;
+        border-radius: 10px;
+        overflow: hidden;
+      }
+
+      .confidence-level {
+        height: 100%;
+        background: #2196f3;
+        transition: width 0.3s ease;
+      }
+
+      .error-message {
+        color: #d32f2f;
+        text-align: center;
+        margin-top: 10px;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Concrete Crack Detector</h1>
+
+      <div id="upload-container" class="upload-container">
+        <p>Drag and drop an image here<br />or click to select a file</p>
+        <input
+          type="file"
+          id="file-input"
+          accept="image/*"
+          style="display: none"
+        />
+      </div>
+
+      <div id="preview-container">
+        <img id="preview-image" alt="Preview" />
+      </div>
+
+      <div class="progress-bar">
+        <div class="progress"></div>
+      </div>
+
+      <div id="result-container" class="result-container">
+        <h2 id="result-text"></h2>
+        <div class="confidence-bar">
+          <div id="confidence-level" class="confidence-level"></div>
+        </div>
+        <p id="confidence-text"></p>
+      </div>
+
+      <div id="error-message" class="error-message"></div>
+    </div>
+
+    <script>
+      const uploadContainer = document.getElementById("upload-container");
+      const fileInput = document.getElementById("file-input");
+      const previewContainer = document.getElementById("preview-container");
+      const previewImage = document.getElementById("preview-image");
+      const resultContainer = document.getElementById("result-container");
+      const resultText = document.getElementById("result-text");
+      const confidenceLevel = document.getElementById("confidence-level");
+      const confidenceText = document.getElementById("confidence-text");
+      const errorMessage = document.getElementById("error-message");
+      const progressBar = document.querySelector(".progress-bar");
+      const progress = document.querySelector(".progress");
+
+      // Prevent default drag behaviors
+      ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+        uploadContainer.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+      });
+
+      // Highlight drop zone when item is dragged over it
+      ["dragenter", "dragover"].forEach((eventName) => {
+        uploadContainer.addEventListener(eventName, highlight, false);
+      });
+
+      ["dragleave", "drop"].forEach((eventName) => {
+        uploadContainer.addEventListener(eventName, unhighlight, false);
+      });
+
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      function highlight(e) {
+        uploadContainer.classList.add("dragover");
+      }
+
+      function unhighlight(e) {
+        uploadContainer.classList.remove("dragover");
+      }
+
+      // Handle dropped files
+      uploadContainer.addEventListener("drop", handleDrop, false);
+      uploadContainer.addEventListener("click", () => fileInput.click());
+      fileInput.addEventListener("change", handleFiles);
+
+      function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles({ target: { files } });
+      }
+
+      function handleFiles(e) {
+        const file = e.target.files[0];
+        if (file && file.type.startsWith("image/")) {
+          // Show preview
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            previewImage.src = e.target.result;
+            previewContainer.style.display = "block";
+          };
+          reader.readAsDataURL(file);
+
+          // Reset UI
+          resultContainer.style.display = "none";
+          errorMessage.style.display = "none";
+          progressBar.style.display = "block";
+          progress.style.width = "0%";
+
+          // Upload and predict
+          uploadAndPredict(file);
+        } else {
+          showError("Please upload an image file");
+        }
+      }
+
+      async function uploadAndPredict(file) {
+        const formData = new FormData();
+        formData.append("image", file);
+
+        try {
+          progress.style.width = "50%";
+
+          const response = await axios.post("/predict", formData, {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          });
+
+          progress.style.width = "100%";
+          setTimeout(() => {
+            progressBar.style.display = "none";
+            showResult(response.data);
+          }, 500);
+        } catch (error) {
+          progress.style.width = "100%";
+          setTimeout(() => {
+            progressBar.style.display = "none";
+            showError("Error processing image. Please try again.");
+          }, 500);
+        }
+      }
+
+      function showResult(data) {
+        resultContainer.style.display = "block";
+        resultContainer.className =
+          "result-container " +
+          (data.prediction === "Crack" ? "crack" : "no-crack");
+
+        resultText.textContent = `${data.prediction} Detected`;
+
+        const confidencePercent = (data.confidence * 100).toFixed(1);
+        confidenceLevel.style.width = `${confidencePercent}%`;
+        confidenceText.textContent = `Confidence: ${confidencePercent}%`;
+      }
+
+      function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = "block";
+      }
+    </script>
+  </body>
+</html>
