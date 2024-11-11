@@ -15,7 +15,6 @@ A Flask-based web application to detect cracks in concrete using a pre-trained R
 
 This project provides a web-based interface for detecting cracks in concrete surfaces, leveraging a trained deep learning model built using ResNet-18. Users can upload images for real-time prediction, with results indicating the presence or absence of a crack and the confidence level of the prediction.
 
-**Note:** The trained model file (`resnet18_trained.pth`) is not included in the GitHub repository due to its size. Please refer to the [Model Training Details](#model-training-details) section for instructions on training and saving the model.
 
 ## Technologies Used
 
