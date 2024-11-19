@@ -90,7 +90,7 @@ detector = CrackDetector()
 
 @app.route('/')
 def home():
-    return render_template(os.path.join(os.path.dirname(__file__), 'index.html'))
+    return render_template('index.html')  
 
 @app.route('/predict', methods=['POST'])
 def predict():
