@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 import torch
 import torchvision.models as models
 import torchvision.transforms as transforms
+from torchvision.models import ResNet18_Weights
 from PIL import Image
 import io
 import base64
@@ -22,22 +23,31 @@ class CrackDetector:
         self.transform = self._get_transforms()
         
     def _load_model(self):
-        try:
-            # Initialize model architecture
-            model = models.resnet18(pretrained=False)
-            for param in model.parameters():
-                param.requires_grad = False
-            model.fc = torch.nn.Linear(512, 2)
-            
-            # Load trained weights
-            model.load_state_dict(torch.load('resnet18_trained.pth', map_location=self.device))
-            model = model.to(self.device)
-            model.eval()
-            logger.info("Model loaded successfully")
-            return model
-        except Exception as e:
-            logger.error(f"Error loading model: {str(e)}")
-            raise
+    try:
+        model = models.resnet18(weights=None) 
+        for param in model.parameters():
+            param.requires_grad = False 
+        
+        # Replace the final fully connected layer to match the number of classes
+        model.fc = torch.nn.Linear(512, 2)
+        
+        state_dict = torch.load('resnet18_trained.pth', map_location=self.device)
+        model.load_state_dict(state_dict)
+        
+        model = model.to(self.device)
+        model.eval()
+        
+        logger.info("Model loaded successfully")
+        return model
+    except FileNotFoundError:
+        logger.error("Model file 'resnet18_trained.pth' not found. Ensure it is in the correct directory.")
+        raise
+    except RuntimeError as e:
+        logger.error(f"Error loading model state_dict: {str(e)}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error loading model: {str(e)}")
+        raise
 
     def _get_transforms(self):
         return transforms.Compose([
