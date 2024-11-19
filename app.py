@@ -6,6 +6,7 @@ from PIL import Image
 import io
 import logging
 import time
+import traceback
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,7 +22,7 @@ class CrackDetector:
         logger.info(f"Using device: {self.device}")
         self.model = self._load_model()
         self.transform = self._get_transforms()
-        
+
     def _load_model(self):
         try:
             model = models.resnet18(weights=None)  # No pre-trained weights
@@ -68,35 +69,51 @@ class CrackDetector:
             start_time = time.time()
 
             # Open image from bytes
-            image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-            logger.info(f"Image opened in {time.time() - start_time:.2f}s")
+            try:
+                logger.debug(f"First 100 bytes of uploaded image: {image_bytes[:100]}")
+                image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+                logger.info(f"Image opened in {time.time() - start_time:.2f}s")
+            except Exception as e:
+                logger.error(f"Error opening image: {str(e)}")
+                raise
 
-            # Resize the image early to reduce overhead
-            image = image.resize((227, 227))
-            logger.info(f"Image resized in {time.time() - start_time:.2f}s")
+            # Resize the image
+            try:
+                image = image.resize((227, 227))
+                logger.info(f"Image resized in {time.time() - start_time:.2f}s")
+            except Exception as e:
+                logger.error(f"Error resizing image: {str(e)}")
+                raise
 
             # Transform image
-            image_tensor = self.transform(image).unsqueeze(0).to(self.device)
-            logger.info(f"Image transformed in {time.time() - start_time:.2f}s")
+            try:
+                image_tensor = self.transform(image).unsqueeze(0).to(self.device)
+                logger.info(f"Image transformed in {time.time() - start_time:.2f}s")
+            except Exception as e:
+                logger.error(f"Error transforming image: {str(e)}")
+                raise
 
             # Get prediction
-            with torch.no_grad():
-                outputs = self.model(image_tensor)
-                probabilities = torch.nn.functional.softmax(outputs, dim=1)
-                confidence, prediction = torch.max(probabilities, 1)
-            
-            logger.info(f"Inference completed in {time.time() - start_time:.2f}s")
+            try:
+                with torch.no_grad():
+                    outputs = self.model(image_tensor)
+                    probabilities = torch.nn.functional.softmax(outputs, dim=1)
+                    confidence, prediction = torch.max(probabilities, 1)
+                logger.info(f"Inference completed in {time.time() - start_time:.2f}s")
 
-            return {
-                'prediction': 'Crack' if prediction.item() == 1 else 'No Crack',
-                'confidence': float(confidence.item()),
-                'probabilities': {
-                    'crack': float(probabilities[0][1]),
-                    'no_crack': float(probabilities[0][0])
+                return {
+                    'prediction': 'Crack' if prediction.item() == 1 else 'No Crack',
+                    'confidence': float(confidence.item()),
+                    'probabilities': {
+                        'crack': float(probabilities[0][1]),
+                        'no_crack': float(probabilities[0][0])
+                    }
                 }
-            }
+            except Exception as e:
+                logger.error(f"Error during inference: {str(e)}")
+                raise
         except Exception as e:
-            logger.error(f"Error during prediction: {str(e)}")
+            logger.error(f"Unexpected error in prediction: {str(e)}")
             raise
 
 
@@ -119,6 +136,10 @@ def predict():
         image_file = request.files['image']
         if image_file.filename == '':
             return jsonify({'error': 'No image selected'}), 400
+
+        # Check file format
+        if not image_file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            return jsonify({'error': 'Unsupported file format. Please upload a PNG or JPG image.'}), 400
             
         # Read image
         image_bytes = image_file.read()
@@ -130,6 +151,7 @@ def predict():
     
     except Exception as e:
         logger.error(f"Error processing request: {str(e)}")
+        logger.error(traceback.format_exc())  # Log the full traceback for debugging
         return jsonify({'error': str(e)}), 500
 
 
