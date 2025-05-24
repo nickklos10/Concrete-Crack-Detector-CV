@@ -42,7 +42,10 @@ export function ImageUploader({
       const validation = validateImageFile(file);
 
       if (!validation.valid) {
-        setError(validation.error || "Invalid file");
+        setError(
+          validation.error ||
+            "File validation failed. Please try a different image."
+        );
         return;
       }
 

@@ -28,7 +28,7 @@ This application provides a professional web-based interface for detecting crack
 
 ### 🔧 Technical Excellence
 
-- **Full-Stack TypeScript**: Type safety throughout the application
+- **TypeScript**: Type safety throughout the application
 - **Modern Architecture**: Clean separation between frontend and backend
 - **Error Handling**: Comprehensive error states with helpful messages
 - **Accessibility**: WCAG compliant with proper ARIA labels

@@ -27,6 +27,7 @@ export default function HomePage() {
         await analyzeImage(imageFile);
       } catch (err) {
         console.error("Analysis failed:", err);
+        // Consider using a toast notification or error state to inform the user
       }
     },
     [analyzeImage]

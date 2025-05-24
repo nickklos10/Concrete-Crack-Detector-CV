@@ -6,6 +6,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatFileSize(bytes: number): string {
+  if (typeof bytes !== "number" || bytes < 0) {
+    throw new Error("Invalid input: bytes must be a non-negative number");
+  }
   if (bytes === 0) return "0 Bytes";
 
   const k = 1024;
@@ -16,6 +19,9 @@ export function formatFileSize(bytes: number): string {
 }
 
 export function formatConfidence(confidence: number): string {
+  if (typeof confidence !== "number" || confidence < 0 || confidence > 1) {
+    throw new Error("Confidence must be a number between 0 and 1");
+  }
   return `${(confidence * 100).toFixed(1)}%`;
 }
 

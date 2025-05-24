@@ -1,16 +1,22 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ["localhost"],
+    domains:
+      process.env.NODE_ENV === "production"
+        ? ["your-production-domain.com"]
+        : ["localhost"],
     formats: ["image/webp", "image/avif"],
   },
   async rewrites() {
-    return [
-      {
-        source: "/api/predict",
-        destination: "http://localhost:8000/predict",
-      },
-    ];
+    if (process.env.NODE_ENV !== "production") {
+      return [
+        {
+          source: "/api/predict",
+          destination: process.env.API_URL || "http://localhost:8000/predict",
+        },
+      ];
+    }
+    return [];
   },
 };
 
