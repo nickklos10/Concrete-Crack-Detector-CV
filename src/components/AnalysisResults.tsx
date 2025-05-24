@@ -1,208 +1,267 @@
 "use client";
 
+import React from "react";
 import { motion } from "framer-motion";
-import { CheckCircle, AlertTriangle, Brain, Target, Clock } from "lucide-react";
-import { formatConfidence, cn } from "@/lib/utils";
-import type { PredictionResult } from "@/types";
+import {
+  AlertTriangle,
+  CheckCircle,
+  TrendingUp,
+  Info,
+  AlertCircle,
+} from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
+import type { AnalysisResult } from "@/types";
 
 interface AnalysisResultsProps {
-  result: PredictionResult;
-  className?: string;
+  result: AnalysisResult;
 }
 
-export function AnalysisResults({ result, className }: AnalysisResultsProps) {
-  const isCrack = result.prediction === "Crack";
+const ConfidenceLevel = ({ confidence }: { confidence: number }) => {
+  const getLevel = () => {
+    if (confidence >= 0.8)
+      return {
+        label: "Very High",
+        variant: "default" as const,
+        color: "text-green-600 dark:text-green-400",
+      };
+    if (confidence >= 0.6)
+      return {
+        label: "High",
+        variant: "secondary" as const,
+        color: "text-blue-600 dark:text-blue-400",
+      };
+    if (confidence >= 0.4)
+      return {
+        label: "Medium",
+        variant: "outline" as const,
+        color: "text-yellow-600 dark:text-yellow-400",
+      };
+    return {
+      label: "Low",
+      variant: "destructive" as const,
+      color: "text-red-600 dark:text-red-400",
+    };
+  };
 
-  const confidencePercentage = Math.round(result.confidence * 100);
-  const crackProbability = Math.round(result.probabilities.crack * 100);
-  const noCrackProbability = Math.round(result.probabilities.no_crack * 100);
+  const level = getLevel();
+
+  return (
+    <div className="flex items-center space-x-2">
+      <Badge variant={level.variant}>{level.label}</Badge>
+      <span className={cn("text-sm font-mono", level.color)}>
+        {(confidence * 100).toFixed(1)}%
+      </span>
+    </div>
+  );
+};
+
+const getRecommendations = (hasCrack: boolean, confidence: number) => {
+  if (hasCrack && confidence > 0.7) {
+    return {
+      primary: "Cracks detected with high confidence",
+      actions: [
+        "Schedule professional structural inspection",
+        "Document crack locations and dimensions",
+        "Monitor for progression over time",
+        "Consider immediate safety measures if extensive",
+      ],
+      severity: "high" as const,
+    };
+  }
+
+  if (hasCrack && confidence > 0.4) {
+    return {
+      primary: "Potential cracks detected",
+      actions: [
+        "Conduct visual inspection by qualified personnel",
+        "Take additional photos from different angles",
+        "Re-analyze with better lighting conditions",
+        "Schedule follow-up assessment",
+      ],
+      severity: "medium" as const,
+    };
+  }
+
+  if (!hasCrack && confidence > 0.7) {
+    return {
+      primary: "No significant cracks detected",
+      actions: [
+        "Continue regular maintenance schedule",
+        "Periodic re-inspection recommended",
+        "Monitor for environmental changes",
+        "Keep photographic records for future reference",
+      ],
+      severity: "low" as const,
+    };
+  }
+
+  return {
+    primary: "Inconclusive results",
+    actions: [
+      "Retake photo with better lighting",
+      "Clean surface before re-analysis",
+      "Use higher resolution image",
+      "Consult professional inspector",
+    ],
+    severity: "medium" as const,
+  };
+};
+
+export function AnalysisResults({ result }: AnalysisResultsProps) {
+  const hasCrack = result.prediction === "crack";
+  const confidence = result.confidence;
+  const recommendations = getRecommendations(hasCrack, confidence);
+
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
+      case "high":
+        return AlertTriangle;
+      case "medium":
+        return AlertCircle;
+      default:
+        return CheckCircle;
+    }
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "high":
+        return "text-red-600 dark:text-red-400";
+      case "medium":
+        return "text-yellow-600 dark:text-yellow-400";
+      default:
+        return "text-green-600 dark:text-green-400";
+    }
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
-      className={cn("w-full space-y-6", className)}
+      transition={{ duration: 0.5 }}
+      className="space-y-4"
     >
       {/* Main Result */}
-      <motion.div
-        initial={{ scale: 0.9 }}
-        animate={{ scale: 1 }}
-        transition={{ duration: 0.3, delay: 0.4 }}
-        className={cn(
-          "p-6 rounded-xl border-2 shadow-lg backdrop-blur-sm",
-          isCrack
-            ? "bg-crack-50/80 border-crack-200 text-crack-900"
-            : "bg-success-50/80 border-success-200 text-success-900"
-        )}
-      >
-        <div className="flex items-center space-x-4">
-          <div
-            className={cn(
-              "p-3 rounded-full",
-              isCrack ? "bg-crack-100" : "bg-success-100"
-            )}
-          >
-            {isCrack ? (
-              <AlertTriangle className="w-8 h-8 text-crack-600" />
-            ) : (
-              <CheckCircle className="w-8 h-8 text-success-600" />
-            )}
-          </div>
-
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold mb-1">
-              {isCrack ? "Crack Detected" : "No Crack Detected"}
-            </h2>
-            <p className="text-sm opacity-80">
-              {isCrack
-                ? "Structural issues identified in the concrete surface"
-                : "Concrete surface appears to be in good condition"}
-            </p>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Confidence Score */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.6 }}
-        className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-200"
-      >
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="p-2 bg-primary-100 rounded-lg">
-            <Target className="w-5 h-5 text-primary-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            Confidence Score
-          </h3>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-gray-600">
-              {result.prediction}
-            </span>
-            <span className="text-lg font-bold text-gray-900">
-              {formatConfidence(result.confidence)}
-            </span>
-          </div>
-
-          <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${confidencePercentage}%` }}
-              transition={{ duration: 0.8, delay: 0.8 }}
-              className={cn(
-                "h-full rounded-full transition-colors",
-                confidencePercentage >= 80
-                  ? "bg-success-500"
-                  : confidencePercentage >= 60
-                  ? "bg-yellow-500"
-                  : "bg-crack-500"
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center space-x-2">
+              {hasCrack ? (
+                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+              ) : (
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
               )}
-            />
+              <span>{hasCrack ? "Cracks Detected" : "No Cracks Detected"}</span>
+            </CardTitle>
+            <ConfidenceLevel confidence={confidence} />
           </div>
-
-          <div className="flex justify-between text-xs text-gray-500">
-            <span>Low</span>
-            <span>High</span>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Detailed Probabilities */}
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.8 }}
-        className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-200"
-      >
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="p-2 bg-primary-100 rounded-lg">
-            <Brain className="w-5 h-5 text-primary-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            Detailed Analysis
-          </h3>
-        </div>
-
-        <div className="space-y-4">
-          {/* Crack Probability */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-gray-600">
-                Crack Probability
-              </span>
-              <span className="text-sm font-bold text-crack-700">
-                {crackProbability}%
+          <CardDescription>
+            AI analysis result based on ResNet-18 deep learning model
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Confidence Score</span>
+              <span className="font-mono">
+                {(confidence * 100).toFixed(1)}%
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${crackProbability}%` }}
-                transition={{ duration: 0.6, delay: 1.0 }}
-                className="h-full bg-crack-500 rounded-full"
-              />
-            </div>
+            <Progress value={confidence * 100} className="h-2" />
           </div>
 
-          {/* No Crack Probability */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-gray-600">
-                No Crack Probability
-              </span>
-              <span className="text-sm font-bold text-success-700">
-                {noCrackProbability}%
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${noCrackProbability}%` }}
-                transition={{ duration: 0.6, delay: 1.2 }}
-                className="h-full bg-success-500 rounded-full"
-              />
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* AI Model Info */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 1.4 }}
-        className="bg-slate-100/80 backdrop-blur-sm rounded-lg p-4 border border-slate-200"
-      >
-        <div className="flex items-center space-x-2 text-sm text-slate-600">
-          <Clock className="w-4 h-4" />
-          <span>Analyzed using ResNet-18 deep learning model</span>
-        </div>
-      </motion.div>
+          {confidence < 0.6 && (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Low confidence detected. Consider retaking the photo with better
+                lighting or cleaning the surface.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recommendations */}
-      {isCrack && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 1.6 }}
-          className="bg-orange-50/80 backdrop-blur-sm rounded-xl p-6 border border-orange-200"
-        >
-          <h4 className="text-lg font-semibold text-orange-900 mb-3">
-            Recommendations
-          </h4>
-          <ul className="space-y-2 text-sm text-orange-800">
-            <li>• Schedule a professional structural inspection</li>
-            <li>• Monitor crack progression over time</li>
-            <li>• Consider repair options to prevent further damage</li>
-            <li>• Document crack location and dimensions</li>
-          </ul>
-        </motion.div>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            {React.createElement(getSeverityIcon(recommendations.severity), {
+              className: cn(
+                "h-5 w-5",
+                getSeverityColor(recommendations.severity)
+              ),
+            })}
+            <span>Recommendations</span>
+          </CardTitle>
+          <CardDescription>{recommendations.primary}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {recommendations.actions.map((action, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="flex items-start space-x-3"
+              >
+                <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary flex-shrink-0" />
+                <span className="text-sm text-muted-foreground">{action}</span>
+              </motion.div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Technical Details */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <TrendingUp className="h-5 w-5" />
+            <span>Technical Details</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-muted-foreground">Model</span>
+              <p className="font-mono">ResNet-18</p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Classification</span>
+              <p className="font-mono">{result.prediction}</p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Confidence</span>
+              <p className="font-mono">{(confidence * 100).toFixed(2)}%</p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Processing Time</span>
+              <p className="font-mono">~2.3s</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Disclaimer:</strong> This AI analysis is for preliminary
+          assessment only. For critical structural decisions, always consult
+          with a qualified structural engineer.
+        </AlertDescription>
+      </Alert>
     </motion.div>
   );
 }

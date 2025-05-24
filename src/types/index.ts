@@ -1,5 +1,21 @@
+export interface ImageFile {
+  file: File;
+  preview: string;
+  id: string;
+}
+
+export interface AnalysisResult {
+  prediction: "crack" | "no_crack";
+  confidence: number;
+  probabilities?: {
+    crack: number;
+    no_crack: number;
+  };
+}
+
+// Legacy type for backwards compatibility
 export interface PredictionResult {
-  prediction: "Crack" | "No Crack";
+  prediction: string;
   confidence: number;
   probabilities: {
     crack: number;
@@ -7,32 +23,18 @@ export interface PredictionResult {
   };
 }
 
-export interface PredictionError {
-  error: string;
-}
-
-export interface UploadProgress {
-  progress: number;
-  status: "idle" | "uploading" | "processing" | "complete" | "error";
-}
-
-export interface ImageFile {
-  file: File;
-  preview: string;
-  id: string;
+export interface ApiResponse {
+  prediction: string;
+  confidence: number;
+  probabilities: {
+    crack: number;
+    no_crack: number;
+  };
 }
 
 export interface AnalysisState {
   isAnalyzing: boolean;
-  result: PredictionResult | null;
+  result: AnalysisResult | null;
   error: string | null;
   progress: number;
-}
-
-export interface ToastConfig {
-  id: string;
-  type: "success" | "error" | "info" | "warning";
-  title: string;
-  description?: string;
-  duration?: number;
 }
