@@ -38,9 +38,7 @@ class CrackDetector:
             state_dict = torch.load('resnet18_trained.pth', map_location=self.device)
             model.load_state_dict(state_dict)
             
-            # Apply dynamic quantization for faster inference
-            model = torch.quantization.quantize_dynamic(model, {torch.nn.Linear}, dtype=torch.qint8)
-
+            # Skip quantization for compatibility with newer PyTorch versions
             model = model.to(self.device)
             model.eval()
             
@@ -153,4 +151,4 @@ def predict():
 
 
 if __name__ == '__main__':
-    app.run(debug=False, port=8000)
+    app.run(debug=False, host='0.0.0.0', port=8000)
