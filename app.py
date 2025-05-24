@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import torch
 import torchvision.models as models
 import torchvision.transforms as transforms
@@ -13,6 +14,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for React frontend
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # Limit upload size to 5 MB
 
 
@@ -119,11 +121,6 @@ class CrackDetector:
 
 # Initialize detector
 detector = CrackDetector()
-
-
-@app.route('/')
-def home():
-    return render_template('index.html')  
 
 
 @app.route('/predict', methods=['POST'])
