@@ -121,3 +121,4 @@ venv.bak/
 
 setup.sh
 start-dev.sh
+env.aws
