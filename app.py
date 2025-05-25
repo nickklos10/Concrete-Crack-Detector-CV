@@ -8,7 +8,15 @@ import io
 import logging
 import time
 import traceback
+import tempfile
+import os
 from typing import Dict, Any
+import boto3
+from botocore.exceptions import ClientError
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -21,8 +29,6 @@ app = FastAPI(
 )
 
 # Enable CORS for React frontend
-import os
-
 # Configure allowed origins based on environment
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 
@@ -34,15 +40,64 @@ app.add_middleware(
      allow_headers=["*"],
 )
 
+def get_s3_client():
+    """Create S3 client with credentials from environment variables"""
+    return boto3.client(
+        's3',
+        aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+        aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+        region_name=os.getenv('AWS_REGION', 'us-east-2')
+    )
+
 class CrackDetector:
     def __init__(self):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         logger.info(f"Using device: {self.device}")
-        self.model = self._load_model()
+        self.model = None
         self.transform = self._get_transforms()
 
-    def _load_model(self):
+    def _download_model_from_s3(self):
+        """Download model from S3 bucket"""
         try:
+            logger.info("Downloading model from S3...")
+            s3_client = get_s3_client()
+            bucket_name = os.getenv('S3_BUCKET_NAME')
+            model_key = os.getenv('S3_MODEL_KEY', 'resnet18_trained.pth')
+            
+            if not bucket_name:
+                raise ValueError("S3_BUCKET_NAME environment variable not set")
+            
+            # Create temporary file
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.pth') as temp_file:
+                s3_client.download_fileobj(bucket_name, model_key, temp_file)
+                temp_file_path = temp_file.name
+            
+            logger.info("Model downloaded successfully from S3")
+            return temp_file_path
+            
+        except ClientError as e:
+            logger.error(f"S3 error: {str(e)}")
+            raise Exception(f"Failed to download model from S3: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error downloading model: {str(e)}")
+            raise
+
+    def _load_model(self):
+        """Load model from S3 or local fallback"""
+        try:
+            # Try to download from S3 first
+            model_path = None
+            try:
+                model_path = self._download_model_from_s3()
+            except Exception as e:
+                logger.warning(f"Failed to download from S3: {str(e)}")
+                # Fallback to local file if S3 fails
+                if os.path.exists('resnet18_trained.pth'):
+                    logger.info("Using local model file as fallback")
+                    model_path = 'resnet18_trained.pth'
+                else:
+                    raise Exception("No model file found in S3 or locally")
+
             model = models.resnet18(weights=None)  # No pre-trained weights
             for param in model.parameters():
                 param.requires_grad = False  # Freeze all layers
@@ -51,8 +106,12 @@ class CrackDetector:
             model.fc = torch.nn.Linear(512, 2)
             
             # Load trained weights
-            state_dict = torch.load('resnet18_trained.pth', map_location=self.device)
+            state_dict = torch.load(model_path, map_location=self.device)
             model.load_state_dict(state_dict)
+            
+            # Clean up temporary file if downloaded from S3
+            if model_path != 'resnet18_trained.pth' and os.path.exists(model_path):
+                os.unlink(model_path)
             
             # Skip quantization for compatibility with newer PyTorch versions
             model = model.to(self.device)
@@ -61,7 +120,7 @@ class CrackDetector:
             logger.info("Model loaded successfully")
             return model
         except FileNotFoundError:
-            logger.error("Model file 'resnet18_trained.pth' not found. Ensure it is in the correct directory.")
+            logger.error("Model file not found in S3 or locally.")
             raise
         except RuntimeError as e:
             logger.error(f"Error loading model state_dict: {str(e)}")
@@ -80,9 +139,18 @@ class CrackDetector:
             )
         ])
     
+    def _ensure_model_loaded(self):
+        """Lazy load the model when first needed"""
+        if self.model is None:
+            self.model = self._load_model()
+        return self.model
+    
     def predict(self, image_bytes: bytes) -> Dict[str, Any]:
         try:
             start_time = time.time()
+
+            # Ensure model is loaded (lazy loading)
+            model = self._ensure_model_loaded()
 
             # Open image from bytes
             try:
@@ -112,7 +180,7 @@ class CrackDetector:
             # Get prediction
             try:
                 with torch.no_grad():
-                    outputs = self.model(image_tensor)
+                    outputs = model(image_tensor)
                     probabilities = torch.nn.functional.softmax(outputs, dim=1)
                     confidence, prediction = torch.max(probabilities, 1)
                 logger.info(f"Inference completed in {time.time() - start_time:.2f}s")
@@ -133,7 +201,7 @@ class CrackDetector:
             raise
 
 
-# Initialize detector
+# Initialize detector (model will be loaded on first use)
 detector = CrackDetector()
 
 

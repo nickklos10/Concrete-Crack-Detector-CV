@@ -142,6 +142,97 @@ The application prioritizes professional usability with modern design patterns:
 - **Autoprefixer**: CSS vendor prefix automation
 - **TypeScript Compiler**: Type checking and compilation
 
+## 🚀 Setup & Configuration
+
+### Prerequisites
+
+- **Python 3.8+** with pip
+- **Node.js 18+** with npm
+- **AWS Account** with S3 bucket access
+
+### Environment Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd Concrete-Crack-Detector-CV
+   ```
+
+2. **Backend Setup:**
+   ```bash
+   # Create virtual environment
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   
+   # Install dependencies
+   pip install -r requirements.txt
+   ```
+
+3. **Frontend Setup:**
+   ```bash
+   npm install
+   ```
+
+4. **Environment Configuration:**
+   ```bash
+   # Copy the environment template
+   cp env.template .env
+   
+   # Edit .env with your AWS credentials
+   AWS_ACCESS_KEY_ID=your_access_key
+   AWS_SECRET_ACCESS_KEY=your_secret_key
+   AWS_REGION=us-east-2
+   S3_BUCKET_NAME=your_bucket_name
+   S3_MODEL_KEY=resnet18_trained.pth
+   ```
+
+### S3 Model Setup
+
+The application now uses AWS S3 for model storage, providing better scalability and repository management:
+
+**Option 1: Upload your trained model to S3**
+```bash
+# Install AWS CLI
+pip install awscli
+
+# Configure AWS credentials
+aws configure
+
+# Upload model file
+aws s3 cp resnet18_trained.pth s3://your-bucket-name/resnet18_trained.pth
+```
+
+**Option 2: Local fallback**
+The system will automatically fall back to the local `resnet18_trained.pth` file if S3 access fails.
+
+### Running the Application
+
+1. **Start the Backend:**
+   ```bash
+   python app.py
+   # Server runs on http://localhost:8000
+   ```
+
+2. **Start the Frontend (in a new terminal):**
+   ```bash
+   npm run dev
+   # Application runs on http://localhost:3000
+   ```
+
+3. **API Documentation:**
+   Visit `http://localhost:8000/docs` for interactive API documentation.
+
+### Configuration Options
+
+| Environment Variable | Description | Default |
+|---------------------|-------------|---------|
+| `AWS_ACCESS_KEY_ID` | AWS access key for S3 | Required |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key for S3 | Required |
+| `AWS_REGION` | S3 bucket region | us-east-2 |
+| `S3_BUCKET_NAME` | S3 bucket containing model | Required |
+| `S3_MODEL_KEY` | Model file path in S3 | resnet18_trained.pth |
+| `ALLOWED_ORIGINS` | CORS allowed origins | http://localhost:3000 |
+
 ## 📊 Data Flow & Processing
 
 ### Image Processing Pipeline
