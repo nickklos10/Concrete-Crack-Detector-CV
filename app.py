@@ -248,12 +248,14 @@ async def predict_crack(image: UploadFile = File(...)) -> Dict[str, Any]:
 
 
 @app.get("/")
+@app.head("/")  # Support HEAD requests for health checks
 async def root():
     """Health check endpoint"""
     return {"message": "Concrete Crack Detector API is running"}
 
 
 @app.get("/health")
+@app.head("/health")  # Support HEAD requests for health checks
 async def health():
     """Health check endpoint with model status"""
     return {
@@ -265,4 +267,8 @@ async def health():
 
 if __name__ == '__main__':
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import os
+    
+    # Use PORT environment variable from Render.com, fallback to 8000 for local dev
+    port = int(os.getenv('PORT', 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
