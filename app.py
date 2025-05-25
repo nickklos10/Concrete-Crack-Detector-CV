@@ -21,12 +21,17 @@ app = FastAPI(
 )
 
 # Enable CORS for React frontend
+import os
+
+# Configure allowed origins based on environment
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+
 app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Configure this appropriately for production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+     CORSMiddleware,
+    allow_origins=allowed_origins,
+     allow_credentials=True,
+     allow_methods=["*"],
+     allow_headers=["*"],
 )
 
 class CrackDetector:
