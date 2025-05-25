@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: concrete-crack-detector-api
+    env: docker
+    plan: free
+    region: ohio  # Choose region closest to your users
+    branch: main  # Deploy from main branch
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: AWS_ACCESS_KEY_ID
+        sync: false  # Set this manually in Render dashboard
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false  # Set this manually in Render dashboard
+      - key: AWS_REGION
+        value: us-east-2
+      - key: S3_BUCKET_NAME
+        value: concrete-detector-bucket
+      - key: S3_MODEL_KEY
+        value: resnet18_trained.pth
+      - key: FRONTEND_URL
+        sync: false  # Will be set to your Vercel URL
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: concrete-detector-disk
+      mountPath: /tmp
+      sizeGB: 1 

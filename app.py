@@ -28,16 +28,25 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Enable CORS for React frontend
-# Configure allowed origins based on environment
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+# Enable CORS for React frontend with production origins
+allowed_origins = [
+    "http://localhost:3000",  # Local development
+    "https://localhost:3000",
+    "https://*.vercel.app",   # Vercel deployments
+    "https://vercel.app",
+]
+
+# Add custom domain if provided
+custom_origin = os.getenv("FRONTEND_URL")
+if custom_origin:
+    allowed_origins.append(custom_origin)
 
 app.add_middleware(
-     CORSMiddleware,
+    CORSMiddleware,
     allow_origins=allowed_origins,
-     allow_credentials=True,
-     allow_methods=["*"],
-     allow_headers=["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 def get_s3_client():
@@ -85,18 +94,8 @@ class CrackDetector:
     def _load_model(self):
         """Load model from S3 or local fallback"""
         try:
-            # Try to download from S3 first
-            model_path = None
-            try:
-                model_path = self._download_model_from_s3()
-            except Exception as e:
-                logger.warning(f"Failed to download from S3: {str(e)}")
-                # Fallback to local file if S3 fails
-                if os.path.exists('resnet18_trained.pth'):
-                    logger.info("Using local model file as fallback")
-                    model_path = 'resnet18_trained.pth'
-                else:
-                    raise Exception("No model file found in S3 or locally")
+            # In production, we must use S3 (no local fallback)
+            model_path = self._download_model_from_s3()
 
             model = models.resnet18(weights=None)  # No pre-trained weights
             for param in model.parameters():
@@ -109,8 +108,8 @@ class CrackDetector:
             state_dict = torch.load(model_path, map_location=self.device)
             model.load_state_dict(state_dict)
             
-            # Clean up temporary file if downloaded from S3
-            if model_path != 'resnet18_trained.pth' and os.path.exists(model_path):
+            # Clean up temporary file
+            if os.path.exists(model_path):
                 os.unlink(model_path)
             
             # Skip quantization for compatibility with newer PyTorch versions
@@ -119,15 +118,12 @@ class CrackDetector:
             
             logger.info("Model loaded successfully")
             return model
-        except FileNotFoundError:
-            logger.error("Model file not found in S3 or locally.")
-            raise
-        except RuntimeError as e:
-            logger.error(f"Error loading model state_dict: {str(e)}")
-            raise
         except Exception as e:
-            logger.error(f"Unexpected error loading model: {str(e)}")
-            raise
+            logger.error(f"Error loading model: {str(e)}")
+            raise HTTPException(
+                status_code=503, 
+                detail="Model loading failed. Please check S3 configuration and try again."
+            )
 
     def _get_transforms(self):
         return transforms.Compose([

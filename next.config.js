@@ -8,15 +8,14 @@ const nextConfig = {
     formats: ["image/webp", "image/avif"],
   },
   async rewrites() {
-    if (process.env.NODE_ENV !== "production") {
-      return [
-        {
-          source: "/api/predict",
-          destination: process.env.API_URL || "http://localhost:8000/predict",
-        },
-      ];
-    }
-    return [];
+    return [
+      {
+        source: "/api/predict",
+        destination: process.env.NEXT_PUBLIC_API_URL 
+          ? `${process.env.NEXT_PUBLIC_API_URL}/predict`
+          : "http://localhost:8000/predict",
+      },
+    ];
   },
 };
 

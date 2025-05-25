@@ -122,3 +122,9 @@ venv.bak/
 setup.sh
 start-dev.sh
 env.aws
+
+# Docker
+.dockerignore
+
+# Deployment
+.env.production
