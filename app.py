@@ -32,8 +32,8 @@ app = FastAPI(
 allowed_origins = [
     "http://localhost:3000",  # Local development
     "https://localhost:3000",
-    "https://*.vercel.app",   # Vercel deployments
-    "https://vercel.app",
+    # Add specific Vercel deployment URLs as needed
+    # "https://your-app-name.vercel.app",
 ]
 
 # Add custom domain if provided
