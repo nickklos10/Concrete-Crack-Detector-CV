@@ -132,9 +132,9 @@ export default function HomePage() {
                   },
                   {
                     icon: Building2,
-                    title: "Professional Grade",
+                    title: "Learning Project",
                     description:
-                      "Trusted solution for structural assessment and monitoring",
+                      "Exploring computer vision and AI applications in civil engineering",
                   },
                 ].map((feature, index) => (
                   <motion.div
@@ -284,8 +284,8 @@ export default function HomePage() {
               React, Next.js, and Tailwind CSS
             </p>
             <p>
-              For professional use only. Always consult with structural
-              engineers for critical assessments.
+              A computer science student project exploring AI in civil engineering. 
+              Not intended for professional structural assessments.
             </p>
           </div>
         </div>
