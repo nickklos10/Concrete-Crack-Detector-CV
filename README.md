@@ -4,8 +4,8 @@
 
 ## 🚀 **Live Deployment**
 
-- **🌐 Frontend**: [Deployed on Vercel](https://your-vercel-url.vercel.app)
-- **⚡ Backend API**: [Deployed on Render.com](https://your-render-url.onrender.com)
+- **🌐 Frontend**: [Deployed on Vercel](https://concrete-crack-detector-cv.vercel.app/)
+- **⚡ Backend API**: [Deployed on Render.com](https://concrete-crack-detector-cv.onrender.com)
 - **☁️ Model Storage**: AWS S3 with intelligent caching
 
 ## 💻 **Technology Stack**
