@@ -248,7 +248,12 @@ export function AnalysisResults({ result }: AnalysisResultsProps) {
             </div>
             <div>
               <span className="text-muted-foreground">Processing Time</span>
-              <p className="font-mono">~2.3s</p>
+              <p className="font-mono">
+                {result.processingTime 
+                  ? `${result.processingTime.toFixed(2)}s`
+                  : "N/A"
+                }
+              </p>
             </div>
           </div>
         </CardContent>

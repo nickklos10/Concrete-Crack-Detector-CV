@@ -27,6 +27,9 @@ export function useImageAnalysis() {
       const formData = new FormData();
       formData.append("image", imageFile.file);
 
+      // Start timing
+      const startTime = Date.now();
+
       // Simulate progress updates
       setAnalysisState((prev) => ({ ...prev, progress: 25 }));
 
@@ -47,10 +50,11 @@ export function useImageAnalysis() {
         },
       });
 
-      // Simulate processing
-      setAnalysisState((prev) => ({ ...prev, progress: 75 }));
+      // Calculate actual processing time
+      const endTime = Date.now();
+      const processingTime = (endTime - startTime) / 1000; // Convert to seconds
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      setAnalysisState((prev) => ({ ...prev, progress: 90 }));
 
       // Transform API response to AnalysisResult
       const result: AnalysisResult = {
@@ -60,6 +64,7 @@ export function useImageAnalysis() {
             : "no_crack",
         confidence: response.data.confidence,
         probabilities: response.data.probabilities,
+        processingTime: processingTime, // Add real processing time
       };
 
       setAnalysisState({

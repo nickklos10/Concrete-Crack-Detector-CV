@@ -11,6 +11,7 @@ export interface AnalysisResult {
     crack: number;
     no_crack: number;
   };
+  processingTime?: number; // Processing time in seconds
 }
 
 // Legacy type for backwards compatibility
