@@ -8,7 +8,6 @@ import {
   AlertTriangle,
   CheckCircle,
   RefreshCw,
-  Github,
   Zap,
   Shield,
 } from "lucide-react";
