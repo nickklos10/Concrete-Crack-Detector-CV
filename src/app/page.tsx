@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import {
   Building2,
   Upload,
@@ -228,10 +229,13 @@ export default function HomePage() {
                   {selectedImage && (
                     <Card>
                       <CardContent className="p-0">
-                        <img
+                        <Image
                           src={selectedImage.preview}
                           alt="Analysis preview"
+                          width={400}
+                          height={320}
                           className="w-full h-64 md:h-80 object-cover rounded-lg"
+                          unoptimized
                         />
                       </CardContent>
                     </Card>
