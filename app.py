@@ -1,5 +1,5 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import torch
 import torchvision.models as models
 import torchvision.transforms as transforms
@@ -8,15 +8,26 @@ import io
 import logging
 import time
 import traceback
+from typing import Dict, Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
-CORS(app)  # Enable CORS for React frontend
-app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # Limit upload size to 5 MB
+app = FastAPI(
+    title="Concrete Crack Detector API",
+    description="API for detecting cracks in concrete images using deep learning",
+    version="1.0.0"
+)
 
+# Enable CORS for React frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure this appropriately for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class CrackDetector:
     def __init__(self):
@@ -64,7 +75,7 @@ class CrackDetector:
             )
         ])
     
-    def predict(self, image_bytes):
+    def predict(self, image_bytes: bytes) -> Dict[str, Any]:
         try:
             start_time = time.time()
 
@@ -121,34 +132,68 @@ class CrackDetector:
 detector = CrackDetector()
 
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    try:
-        # Get image from request
-        if 'image' not in request.files:
-            return jsonify({'error': 'No image provided'}), 400
+@app.post("/predict")
+async def predict_crack(image: UploadFile = File(...)) -> Dict[str, Any]:
+    """
+    Predict whether an uploaded image contains concrete cracks.
+    
+    Args:
+        image: The image file to analyze (PNG, JPG, JPEG)
         
-        image_file = request.files['image']
-        if image_file.filename == '':
-            return jsonify({'error': 'No image selected'}), 400
-
+    Returns:
+        Dict containing prediction, confidence, and probabilities
+        
+    Raises:
+        HTTPException: If there's an error processing the image
+    """
+    try:
         # Check file format
-        if not image_file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-            return jsonify({'error': 'Unsupported file format. Please upload a PNG or JPG image.'}), 400
+        if not image.filename:
+            raise HTTPException(status_code=400, detail="No image selected")
             
-        # Read image
-        image_bytes = image_file.read()
+        if not image.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+            raise HTTPException(
+                status_code=400, 
+                detail="Unsupported file format. Please upload a PNG or JPG image."
+            )
+        
+        # Check file size (5MB limit)
+        image_bytes = await image.read()
+        if len(image_bytes) > 5 * 1024 * 1024:  # 5MB
+            raise HTTPException(
+                status_code=413, 
+                detail="File too large. Maximum size is 5MB."
+            )
         
         # Get prediction
         result = detector.predict(image_bytes)
         
-        return jsonify(result)
+        return result
     
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error processing request: {str(e)}")
         logger.error(traceback.format_exc())  # Log the full traceback for debugging
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/")
+async def root():
+    """Health check endpoint"""
+    return {"message": "Concrete Crack Detector API is running"}
+
+
+@app.get("/health")
+async def health():
+    """Health check endpoint with model status"""
+    return {
+        "status": "healthy",
+        "model_loaded": detector.model is not None,
+        "device": str(detector.device)
+    }
 
 
 if __name__ == '__main__':
-    app.run(debug=False, host='0.0.0.0', port=8000)
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
