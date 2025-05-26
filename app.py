@@ -32,8 +32,7 @@ app = FastAPI(
 allowed_origins = [
     "http://localhost:3000",  # Local development
     "https://localhost:3000",
-    # Add specific Vercel deployment URLs as needed
-    # "https://your-app-name.vercel.app",
+    "https://concrete-crack-detector-cv.vercel.app/"
 ]
 
 # Add custom domain if provided
@@ -42,11 +41,11 @@ if custom_origin:
     allowed_origins.append(custom_origin)
 
 app.add_middleware(
-    CORSMiddleware,
+     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=True,
+     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["*"],
+     allow_headers=["*"],
 )
 
 def get_s3_client():
@@ -56,7 +55,7 @@ def get_s3_client():
         aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
         aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
         region_name=os.getenv('AWS_REGION', 'us-east-2')
-    )
+)
 
 class CrackDetector:
     def __init__(self):
@@ -143,43 +142,47 @@ class CrackDetector:
     
     def predict(self, image_bytes: bytes) -> Dict[str, Any]:
         try:
-            start_time = time.time()
+            start_time = time.perf_counter()
 
             # Ensure model is loaded (lazy loading)
+            model_start = time.perf_counter()
             model = self._ensure_model_loaded()
+            model_time = time.perf_counter() - model_start
+            logger.info(f"Model loading/check completed in {model_time:.3f}s")
 
             # Open image from bytes
             try:
+                image_start = time.perf_counter()
                 logger.debug(f"First 100 bytes of uploaded image: {image_bytes[:100]}")
                 image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-                logger.info(f"Image opened in {time.time() - start_time:.2f}s")
+                image_time = time.perf_counter() - image_start
+                logger.info(f"Image opened in {image_time:.3f}s")
             except Exception as e:
                 logger.error(f"Error opening image: {str(e)}")
                 raise
 
-            # Resize the image
+            # Transform image (includes resizing to 227x227)
             try:
-                image = image.resize((227, 227))
-                logger.info(f"Image resized in {time.time() - start_time:.2f}s")
-            except Exception as e:
-                logger.error(f"Error resizing image: {str(e)}")
-                raise
-
-            # Transform image
-            try:
+                transform_start = time.perf_counter()
                 image_tensor = self.transform(image).unsqueeze(0).to(self.device)
-                logger.info(f"Image transformed in {time.time() - start_time:.2f}s")
+                transform_time = time.perf_counter() - transform_start
+                logger.info(f"Image transformed in {transform_time:.3f}s")
             except Exception as e:
                 logger.error(f"Error transforming image: {str(e)}")
                 raise
 
             # Get prediction
             try:
+                inference_start = time.perf_counter()
                 with torch.no_grad():
                     outputs = model(image_tensor)
                     probabilities = torch.nn.functional.softmax(outputs, dim=1)
                     confidence, prediction = torch.max(probabilities, 1)
-                logger.info(f"Inference completed in {time.time() - start_time:.2f}s")
+                inference_time = time.perf_counter() - inference_start
+                logger.info(f"Inference completed in {inference_time:.3f}s")
+
+                total_time = time.perf_counter() - start_time
+                logger.info(f"Total prediction time: {total_time:.3f}s")
 
                 return {
                     'prediction': 'Crack' if prediction.item() == 1 else 'No Crack',
