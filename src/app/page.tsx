@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Zap,
   Shield,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import {
@@ -26,7 +27,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ImageUploader } from "@/components/ImageUploader";
 import { AnalysisResults } from "@/components/AnalysisResults";
+import { WelcomePopup } from "@/components/WelcomePopup";
 import { useImageAnalysis } from "@/hooks/useImageAnalysis";
+import { useFirstVisit } from "@/hooks/useFirstVisit";
 import { cn } from "@/lib/utils";
 import type { ImageFile } from "@/types";
 
@@ -36,6 +39,8 @@ export default function HomePage() {
 
   const { isAnalyzing, result, error, progress, analyzeImage, resetAnalysis } =
     useImageAnalysis();
+  
+  const { showWelcomePopup, markAsVisited, showPopup } = useFirstVisit();
 
   const handleImageSelect = useCallback(
     async (imageFile: ImageFile) => {
@@ -64,8 +69,22 @@ export default function HomePage() {
     setShowWelcome(true);
   }, [handleRemoveImage]);
 
+  const handleWelcomePopupClose = useCallback(() => {
+    markAsVisited();
+  }, [markAsVisited]);
+
+  const handleInfoClick = useCallback(() => {
+    showPopup();
+  }, [showPopup]);
+
   return (
     <div className="min-h-screen bg-background">
+      {/* Welcome Popup for First-Time Visitors */}
+      <WelcomePopup 
+        isOpen={showWelcomePopup} 
+        onClose={handleWelcomePopupClose} 
+      />
+
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4">
@@ -83,6 +102,15 @@ export default function HomePage() {
             </div>
 
             <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleInfoClick}
+                className="h-9 w-9"
+                title="Project Information"
+              >
+                <Info className="h-4 w-4" />
+              </Button>
               <Badge variant="secondary" className="hidden sm:flex">
                 ResNet-18
               </Badge>
